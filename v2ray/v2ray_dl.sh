@@ -1,3 +1,5 @@
+#!/bin/sh
+
 v2ray_log() {
         local type="$1"; shift
         printf '%s [%s] [Entrypoint]: %s\n' "$(date --rfc-2822)" "$type" "$*"
@@ -15,12 +17,16 @@ v2ray_error() {
 }
 
 v2ray_download() {
+    v2ray_note ${TARGETPLATFORM}
+    v2ray_note ${HTTP_PROXY}
+
     # Set ARG
-    if [[ -z $1 ]]; then
+    if [[ -z ${TARGETPLATFORM} ]]; then
         PLATFORM="linux/amd64"
     else
-        PLATFORM=$1
+        PLATFORM=${TARGETPLATFORM}
     fi
+
     if [ -z "$PLATFORM" ]; then
         ARCH="64"
     else
@@ -51,6 +57,7 @@ v2ray_download() {
                 ;;
         esac
     fi
+
     [ -z "${ARCH}" ] && v2ray_error "Error: Not supported OS Architecture"
 
     # Download files
@@ -59,12 +66,18 @@ v2ray_download() {
     v2ray_note "Downloading binary file: ${V2RAY_FILE}"
     v2ray_note "Downloading binary file: ${DGST_FILE}"
 
-    TAG=$(wget -qO- https://raw.githubusercontent.com/v2fly/docker/master/ReleaseTag | head -n1)
+    TAG_URL="https://raw.githubusercontent.com/v2fly/docker/master/ReleaseTag"
+    TAG=$(curl -fsSL ${TAG_URL} -x ${HTTP_PROXY})
+
+    URL_BASE="https://github.com/v2fly/v2ray-core/releases/download"
+    URL_V2RAY="${URL_BASE}/${TAG}/${V2RAY_FILE}"
+    URL_V2RAY_DGST="${URL_BASE}/${TAG}/${DGST_FILE}"
+
     v2ray_note "tag: ${TAG}"
-    v2ray_note "v2ray.zip url: https://github.com/v2fly/v2ray-core/releases/download/${TAG}/${V2RAY_FILE}"
-    v2ray_note "v2ray.zip.dgst url: https://github.com/v2fly/v2ray-core/releases/download/${TAG}/${DGST_FILE}"
-    wget -O ${PWD}/v2ray.zip https://github.com/v2fly/v2ray-core/releases/download/${TAG}/${V2RAY_FILE} > /dev/null 2>&1
-    wget -O ${PWD}/v2ray.zip.dgst https://github.com/v2fly/v2ray-core/releases/download/${TAG}/${DGST_FILE} > /dev/null 2>&1
+    v2ray_note "v2ray.zip url: ${URL_V2RAY}"
+    v2ray_note "v2ray.zip.dgst url: ${URL_V2RAY_DGST}"
+    curl -fsSL --remote-name ${URL_V2RAY} -x ${HTTP_PROXY}
+    curl -fsSL --remote-name ${URL_V2RAY_DGST} -x ${HTTP_PROXY}
 
     if [ $? -ne 0 ]; then
         v2ray_error "Error: Failed to download binary file: ${V2RAY_FILE} ${DGST_FILE}"
@@ -72,19 +85,14 @@ v2ray_download() {
     v2ray_note "Download binary file: ${V2RAY_FILE} ${DGST_FILE} completed"
 
     # Check SHA512
-    LOCAL=$(openssl dgst -sha512 v2ray.zip | sed 's/([^)]*)//g')
-    STR=$(cat v2ray.zip.dgst | grep 'SHA512' | head -n1)
+    LOCAL=$(openssl dgst -sha512 ${V2RAY_FILE} | sed 's/([^)]*)//g')
+    STR=$(cat ${DGST_FILE} | grep 'SHA512' | head -n1)
 
     if [ "${LOCAL}" = "${STR}" ]; then
-        v2ray_note " Check passed" && rm -fv v2ray.zip.dgst
+        v2ray_note " Check passed" && rm -fv ${DGST_FILE}
     else
         v2ray_error " Check have not passed yet "
     fi
 }
-
-# delete the old version
-if [[ -E ./v2ray.zip ]]; then
-    rm -f ./v2ray.zip
-fi
 
 v2ray_download "$@"
