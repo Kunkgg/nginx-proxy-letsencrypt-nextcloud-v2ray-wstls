@@ -1,0 +1,3 @@
+[submodule "v2ray-wstls"]
+	path = v2ray-wstls
+	url = git@github.com:Kunkgg/v2ray-wstls.git
