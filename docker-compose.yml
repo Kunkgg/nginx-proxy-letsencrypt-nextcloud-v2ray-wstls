@@ -1,0 +1,137 @@
+version: '3'
+
+volumes:
+  nextcloud:
+  db:
+  certs:
+  vhost:
+  html:
+  dhparam:
+  conf:
+
+networks:
+  proxynet:
+
+services:
+  proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx_proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    labels:
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy"
+    volumes:
+      - ./proxy/uploadsize.conf:/etc/nginx/conf.d/uploadsize.conf
+      - conf:/etc/nginx/conf.d
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - dhparam:/etc/nginx/dhparam
+      - certs:/etc/nginx/certs:ro
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      - TZ=${TZ}
+    networks:
+      - proxynet
+    restart: unless-stopped
+
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    volumes:
+      - conf:/etc/nginx/conf.d
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - dhparam:/etc/nginx/dhparam
+      - certs:/etc/nginx/certs:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx_proxy
+      - DEFAULT_EMAIL=${DEFAULT_EMAIL}
+      - TZ=${TZ}
+    networks:
+      - proxynet
+    restart: unless-stopped
+
+  db:
+    image: mariadb
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - db:/var/lib/mysql
+    environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - TZ=${TZ}
+    networks:
+      - proxynet
+    restart: unless-stopped
+
+  nextcloud-app:
+    image: nextcloud:fpm-alpine
+    depends_on:
+      - proxy
+      - letsencrypt
+      - db
+    links:
+      - db
+    volumes:
+      - nextcloud:/var/www/html
+    environment:
+      - MYSQL_HOST=db
+      - OVERWRITEPROTOCOL=https
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_DOMAIN}
+      - TZ=${TZ}
+    networks:
+      - proxynet
+    restart: unless-stopped
+
+  web:
+    image: nginx:alpine
+    depends_on:
+      - proxy
+      - letsencrypt
+      - nextcloud-app
+      - db
+    ports:
+      - "${NEXTCOULD_VIRTUAL_PORT}:80"
+    links:
+      - nextcloud-app
+    volumes:
+      - ./web/nginx.conf:/etc/nginx/nginx.conf
+      - nextcloud:/var/www/html
+    environment:
+      - VIRTUAL_HOST=${NEXTCLOUD_DOMAIN}
+      - VIRTUAL_PORT=${NEXTCOULD_VIRTUAL_PORT}
+      - LETSENCRYPT_HOST=${NEXTCLOUD_DOMAIN}
+      - LETSENCRYPT_EMAIL=${DEFAULT_EMAIL}
+      - TZ=${TZ}
+    networks:
+      - proxynet
+      - default
+    restart: unless-stopped
+
+  v2ray:
+    image: teddysun/v2ray
+    depends_on:
+      - proxy
+      - letsencrypt
+    ports:
+      - "${V2RAY_VIRTUAL_PORT}:${V2RAY_VIRTUAL_PORT}"
+    volumes:
+      - ./v2ray/config.json:/etc/v2ray/config.json
+    environment:
+      - VIRTUAL_HOST=${V2RAY_DOMAIN}
+      - VIRTUAL_PORT=${V2RAY_VIRTUAL_PORT}
+      - LETSENCRYPT_HOST=${V2RAY_DOMAIN}
+      - LETSENCRYPT_EMAIL=${DEFAULT_EMAIL}
+      - TZ=${TZ}
+    networks:
+      - proxynet
+    restart: unless-stopped
