@@ -118,15 +118,18 @@ services:
     restart: unless-stopped
 
   v2ray:
-    image: teddysun/v2ray
+    build:
+      context: ./v2ray-wstls
+      args:
+        - TARGETPLATFORM=linux/amd64
+        - HTTP_PROXY=http://192.168.0.7:1081
     depends_on:
       - proxy
       - letsencrypt
     ports:
       - "${V2RAY_VIRTUAL_PORT}:${V2RAY_VIRTUAL_PORT}"
-    volumes:
-      - ./v2ray/config.json:/etc/v2ray/config.json
     environment:
+      - V2RAY_UUID=${V2RAY_UUID}
       - VIRTUAL_HOST=${V2RAY_DOMAIN}
       - VIRTUAL_PORT=${V2RAY_VIRTUAL_PORT}
       - LETSENCRYPT_HOST=${V2RAY_DOMAIN}
