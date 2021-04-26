@@ -1,0 +1,25 @@
+# generic
+TZ=Asia/Shanghai
+DEFAULT_EMAIL=someone@mail.com
+
+# db
+MYSQL_USER=nextcloud
+MYSQL_PASSWORD=mysqlpassowrd
+MYSQL_ROOT_PASSWORD=mysqlpassowrd@root
+MYSQL_DATABASE=nextcloud
+
+# nextcloud-app
+NEXTCLOUD_ADMIN_USER=useranme
+NEXTCLOUD_ADMIN_PASSWORD=pass@word123
+NEXTCLOUD_DOMAIN=nextcloud.domain.com
+OVERWRITEPROTOCOL=https
+
+# web
+NEXTCOULD_VIRTUAL_PORT=9000
+LETSENCRYPT_HOST=nextcloud.domain.com
+LETSENCRYPT_EMAIL=someone@mail.com
+
+# v2ray
+V2RAY_DOMAIN=v2ray.domain.com
+V2RAY_VIRTUAL_PORT=10000
+V2RAY_UUID=$(uuidgen)
