@@ -122,7 +122,7 @@ services:
       context: ./v2ray-wstls
       args:
         - TARGETPLATFORM=linux/amd64
-        - HTTP_PROXY=http://192.168.0.7:1081
+        - HTTP_PROXY=""
     depends_on:
       - proxy
       - letsencrypt
@@ -130,6 +130,7 @@ services:
       - "${V2RAY_VIRTUAL_PORT}:${V2RAY_VIRTUAL_PORT}"
     environment:
       - V2RAY_UUID=${V2RAY_UUID}
+      - V2RAY_VIRTUAL_PORT=${V2RAY_VIRTUAL_PORT}
       - VIRTUAL_HOST=${V2RAY_DOMAIN}
       - VIRTUAL_PORT=${V2RAY_VIRTUAL_PORT}
       - LETSENCRYPT_HOST=${V2RAY_DOMAIN}
