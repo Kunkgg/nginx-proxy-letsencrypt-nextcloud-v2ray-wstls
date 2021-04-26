@@ -1,0 +1,8 @@
+# generic
+TZ=Asia/Shanghai
+DEFAULT_EMAIL=some@mail.com
+
+# v2ray
+V2RAY_DOMAIN=example.domain.com
+V2RAY_VIRTUAL_PORT=10000
+V2RAY_UUID=$(uuidgen)
