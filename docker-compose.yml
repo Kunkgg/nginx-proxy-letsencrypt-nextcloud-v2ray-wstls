@@ -8,6 +8,8 @@ volumes:
   html:
   dhparam:
   conf:
+  feed-icons:
+  ttrss-db:
 
 networks:
   proxynet:
@@ -139,3 +141,67 @@ services:
     networks:
       - proxynet
     restart: unless-stopped
+
+  ttrss.app:
+    image: wangqiru/ttrss:latest
+    container_name: ttrss
+    ports:
+      - "${TTRSS_VIRTUAL_PORT}:80"
+    environment:
+      - TZ=${TZ}
+      - SELF_URL_PATH=${TTRSS_DOMAIN}
+      - DB_PASS=${TTRSS_DB_PASSWORD}
+      - PUID=1000
+      - PGID=1000
+      - VIRTUAL_HOST=${TTRSS_DOMAIN}
+      - VIRTUAL_PORT=${TTRSS_VIRTUAL_PORT}
+      - LETSENCRYPT_HOST=${TTRSS_DOMAIN}
+      - LETSENCRYPT_EMAIL=${DEFAULT_EMAIL}
+    volumes:
+      - feed-icons:/var/www/feed-icons/
+    networks:
+      - proxynet
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  ttrss.mercury: # set Mercury Parser API endpoint to `service.mercury:3000` on TTRSS plugin setting page
+    image: wangqiru/mercury-parser-api:latest
+    container_name: mercury
+    environment:
+      - TZ=${TZ}
+    networks:
+      - proxynet
+    restart: unless-stopped
+
+  ttrss.opencc: # set OpenCC API endpoint to `service.opencc:3000` on TTRSS plugin setting page
+    image: wangqiru/opencc-api-server:latest
+    container_name: opencc
+    environment:
+      - NODE_ENV=production
+      - TZ=${TZ}
+    networks:
+      - proxynet
+    restart: unless-stopped
+
+  ttrss.postgres:
+    image: postgres:13-alpine
+    container_name: postgres
+    environment:
+      - POSTGRES_PASSWORD=${TTRSS_DB_PASSWORD}
+      - TZ=${TZ}
+    volumes:
+      - ttrss-db:/var/lib/postgresql/data
+    networks:
+      - proxynet
+    restart: unless-stopped
+
+  # utility.watchtower:
+  #   container_name: watchtower
+  #   image: containrrr/watchtower:latest
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   environment:
+  #     - WATCHTOWER_CLEANUP=true
+  #     - WATCHTOWER_POLL_INTERVAL=86400
+  #   restart: always

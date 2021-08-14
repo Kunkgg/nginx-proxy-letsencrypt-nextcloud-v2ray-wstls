@@ -23,3 +23,8 @@ LETSENCRYPT_EMAIL=someone@mail.com
 V2RAY_DOMAIN=v2ray.domain.com
 V2RAY_VIRTUAL_PORT=10000
 V2RAY_UUID=$(uuidgen)
+
+# ttrss
+TTRSS_DOMAIN=v2ray.domain.com
+TTRSS_VIRTUAL_PORT=181
+TTRSS_DB_PASSWORD=ttrss@password@123
